@@ -1,69 +1,58 @@
 package com.archis.front;
 
 import com.archis.bdd.BddCrud;
+import com.archis.front.itfc.MonstresUpdateListener;
 import com.archis.front.itfc.SettingsUpdateListener;
 import com.archis.model.Settings;
+import com.archis.utils.SettingsSingleton;
 import com.archis.utils.TypeMonstreEnum;
-
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
-import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
+
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.List;
 
 import static com.archis.utils.SceneUtils.*;
 
-public class MainScene implements SettingsUpdateListener {
-    private JPanel mainPanel;
-    private JProgressBar progressionCaptures;
-    private JComboBox choixTypeMonstreBarreProgression;
-    private JButton optiMap;
-    private JButton addMonster;
-    private JButton data;
-    private JButton settings;
-    private JButton closeButton;
-    private TypeMonstreEnum actualTypeMonstre = TypeMonstreEnum.ARCHIMONSTRE;
-    private JFrame optiMapWindow = null;
-    private JFrame addMonsterWindow = null;
-    private JFrame dataWindow = null;
-    private JFrame settingsWindow = null;
+public class MainScene implements SettingsUpdateListener, MonstresUpdateListener {
+
+
+    private JPanel pnlMain;
+    private JPanel pnlCenterMain;
+    private JPanel pnlInnerNorth;
+    private JPanel pnlInnerCenter;
+    private JProgressBar progressBar1;
+    private JComboBox typeMonstreBox;
+    private JButton optiMapButton;
+    private JButton addMonsterButton;
+    private JButton dataButton;
+    private JButton settingsButton;
+    private JButton xButton;
+    private JFrame settingsFrame;
+    private JFrame dataFrame;
+    private JFrame optiMapFrame;
+    private JFrame addMonsterFrame;
+
+    private List<Settings> settingsList;
     private int nombrePersonnages;
     private float opacite;
-    private String couleurPrincipale;
-    private String couleurBackground;
+    private TypeMonstreEnum actualTypeMonstre = TypeMonstreEnum.ARCHIMONSTRE;
 
-    @Override
-    public void onSettingsUpdated() {
-        getValuesFromSettings();
-        setNewValues();
-        mainPanel.revalidate();
-        mainPanel.repaint();
-        Window window = SwingUtilities.getWindowAncestor(mainPanel);
-        if (window != null) {
-            window.setOpacity(opacite); // Set the new opacity
-        }
-    }
-
-    private void setNewValues() {
+    public MainScene() {
+        setPanelMouseMovable(pnlMain);
+        setSettingValues();
+        setCloseButtonPanel(pnlMain, xButton);
         setProgressionCaptures();
-        setData();
-        setAddMonster();
-        setOptiMap();
-        if (optiMapWindow != null) {
-            optiMapWindow.setOpacity(opacite);
-        }
-        if (addMonsterWindow != null) {
-            addMonsterWindow.setOpacity(opacite);
-        }
-        if (dataWindow != null) {
-            dataWindow.setOpacity(opacite);
-        }
+        setChoixTypeMonstreBarreProgression();
+        setButtonProperties();
     }
 
-    private void getValuesFromSettings() {
-        List<Settings> settings = BddCrud.getSettings();
-        for (Settings setting : settings) {
+    private void setSettingValues() {
+        getSettingValues();
+        for (Settings setting : settingsList) {
             switch (setting.getNom()) {
                 case "opacite":
                     opacite = Integer.parseInt(setting.getValeur())/100.0f;
@@ -71,42 +60,13 @@ public class MainScene implements SettingsUpdateListener {
                 case "nombrepersonnages":
                     nombrePersonnages = Integer.parseInt(setting.getValeur());
                     break;
-                case "maincouleur":
-                    couleurPrincipale = setting.getValeur();
-                    break;
-                case "couleurfond":
-                    couleurBackground = setting.getValeur();
-                    break;
             }
         }
     }
 
-    public MainScene() {
-        mainPanel = new JPanel(new MigLayout());
-        setPanelMouseMovable(mainPanel);
-        getValuesFromSettings();
-        progressionCaptures = new JProgressBar();
-        setProgressionCaptures();
-        choixTypeMonstreBarreProgression = new JComboBox();
-        setChoixTypeMonstreBarreProgression();
-        optiMap = new JButton(couleurBackground);
-        setOptiMap();
-        addMonster = new JButton("Ajouter un monstre");
-        setAddMonster();
-        data = new JButton("Données");
-        setData();
-        settings = new JButton("Paramètres");
-        setSettings();
-        closeButton = new JButton("X");
-        setCloseButtonPanel(mainPanel, closeButton);
-
-        mainPanel.add(closeButton, "span, align right, wrap");
-        mainPanel.add(progressionCaptures, "pushx, growx");
-        mainPanel.add(choixTypeMonstreBarreProgression, "wrap");
-        mainPanel.add(optiMap, "span, growx, wrap");
-        mainPanel.add(addMonster, "span, growx, wrap");
-        mainPanel.add(data, "span, growx, wrap");
-        mainPanel.add(settings, "span, growx, wrap");
+    private void getSettingValues() {
+        SettingsSingleton settingsSingleton = SettingsSingleton.getInstance();
+        settingsList = settingsSingleton.getSettings();
     }
 
     private void setProgressionCaptures() {
@@ -120,19 +80,18 @@ public class MainScene implements SettingsUpdateListener {
             countMonstres = BddCrud.selectAllArchimonstresByTypeWithNombre(actualTypeMonstre.getTypeBdd(), nombrePersonnages);
         }
         System.out.println(totalMonstres);
-        progressionCaptures.setMaximum(totalMonstres);
-        progressionCaptures.setValue(countMonstres);
-        progressionCaptures.setString(countMonstres + "/" + totalMonstres);
-        progressionCaptures.setStringPainted(true);
+        progressBar1.setMaximum(totalMonstres);
+        progressBar1.setValue(countMonstres);
+        progressBar1.setString(countMonstres + "/" + totalMonstres);
+        progressBar1.setStringPainted(true);
     }
 
     private void setChoixTypeMonstreBarreProgression() {
-        choixTypeMonstreBarreProgression.addItem(TypeMonstreEnum.ARCHIMONSTRE.getDisplay());
-        choixTypeMonstreBarreProgression.addItem(TypeMonstreEnum.MONSTRE.getDisplay());
-        choixTypeMonstreBarreProgression.addItem(TypeMonstreEnum.BOSS.getDisplay());
-        choixTypeMonstreBarreProgression.addItem(TypeMonstreEnum.TOUS.getDisplay());
-        choixTypeMonstreBarreProgression.addActionListener(e -> {
-            String selectedType = (String) choixTypeMonstreBarreProgression.getSelectedItem();
+        for (TypeMonstreEnum typeMonstreEnum : TypeMonstreEnum.values()) {
+            typeMonstreBox.addItem(typeMonstreEnum.getDisplay());
+        }
+        typeMonstreBox.addActionListener(e -> {
+            String selectedType = (String) typeMonstreBox.getSelectedItem();
             switch (selectedType) {
                 case "Archimonstre":
                     actualTypeMonstre = TypeMonstreEnum.ARCHIMONSTRE;
@@ -154,96 +113,111 @@ public class MainScene implements SettingsUpdateListener {
         });
     }
 
-    private void setOptiMap() {
-        optiMap.addActionListener(e -> {
-            if (optiMapWindow == null || !optiMapWindow.isVisible()) {
-                optiMapWindow = new JFrame("OptiMap");
-                optiMapWindow.setUndecorated(true);
-                optiMapWindow.setSize(300, 200);
-                optiMapWindow.setOpacity(opacite);
-                optiMapWindow.setLocationRelativeTo(null);
-                optiMapWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                setFrameMouseMovable(optiMapWindow);
-                optiMapWindow.setVisible(true);
+    private void setButtonProperties() {
+        optiMapButton.addActionListener(e -> {
+            if(optiMapFrame != null) {
+                optiMapFrame.toFront();
+                optiMapFrame.repaint();
             } else {
-                optiMapWindow.toFront();
-                optiMapWindow.repaint();
+                optiMapFrame = new JFrame("Optimisation de la map");
+//                optiMapFrame.setContentPane(new OptiMapScene().OptiMapScene());
+                setWindowProperties(optiMapFrame);
             }
         });
-    }
 
-    private void setAddMonster() {
-        addMonster.addActionListener(e -> {
-            // Vérifiez si la fenêtre OptiMap est déjà ouverte
-            if (addMonsterWindow == null || !addMonsterWindow.isVisible()) {
-                addMonsterWindow = new JFrame("Ajouter un monstre");
-                addMonsterWindow.setUndecorated(true);
-                addMonsterWindow.setOpacity(opacite);
-                addMonsterWindow.setSize(300, 200);
-                addMonsterWindow.setLocationRelativeTo(null);
-                addMonsterWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                addMonsterWindow.setVisible(true);
-                setFrameMouseMovable(addMonsterWindow);
+        addMonsterButton.addActionListener(e -> {
+            if(addMonsterFrame != null) {
+                addMonsterFrame.toFront();
+                addMonsterFrame.repaint();
             } else {
-                addMonsterWindow.toFront();
-                addMonsterWindow.repaint();
+                addMonsterFrame = new JFrame("Ajouter un monstre");
+                AddMonsterScene addMonsterScene = new AddMonsterScene();
+                addMonsterScene.setMonstresUpdateListener(this);
+                addMonsterFrame.setContentPane(addMonsterScene.AddMonsterScene());
+                addMonsterFrame.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                        addMonsterFrame = null;
+                    }
+                });
+                setWindowProperties(addMonsterFrame);
             }
         });
-    }
 
-    private void setData() {
-        data.addActionListener(e -> {
-            if (dataWindow == null || !dataWindow.isVisible()) {
-                // Créer une nouvelle fenêtre
-                dataWindow = new JFrame("Data");
-                dataWindow.setSize(300, 200);
-                dataWindow.setUndecorated(true);
-                dataWindow.setOpacity(opacite);
-                dataWindow.setLocationRelativeTo(null);
-                dataWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                dataWindow.setVisible(true);
-                setFrameMouseMovable(dataWindow);
+        dataButton.addActionListener(e -> {
+            if(dataFrame != null) {
+                dataFrame.toFront();
+                dataFrame.repaint();
             } else {
-                dataWindow.toFront();
-                dataWindow.repaint();
+                dataFrame = new JFrame("Données");
+                dataFrame.setContentPane(new DataScene().DataScene());
+                dataFrame.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                        dataFrame = null;
+                    }
+                });
+                setWindowProperties(dataFrame);
             }
         });
-    }
 
-    private void setSettings(){
-        settings.addActionListener(e -> {
-            if (settingsWindow == null || !settingsWindow.isVisible()) {
+        settingsButton.addActionListener(e -> {
+            if(settingsFrame != null) {
+                settingsFrame.toFront();
+                settingsFrame.repaint();
+            } else {
                 SettingsScene settingsScene = new SettingsScene();
                 settingsScene.setSettingsUpdateListener(this);
-                settingsWindow = new JFrame("Data");
-                settingsWindow.setUndecorated(true);
-                settingsWindow.setContentPane(settingsScene.getMainPanel());
-                settingsWindow.setSize(300, 200);
-                settingsWindow.setLocationRelativeTo(null);
-                settingsWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                settingsWindow.setVisible(true);
-                setFrameMouseMovable(settingsWindow);
-            } else {
-                settingsWindow.toFront();
-                settingsWindow.repaint();
+                settingsFrame = new JFrame("Paramètres");
+                settingsFrame.setContentPane(settingsScene.SettingsScene());
+                settingsFrame.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                        settingsFrame = null;
+                    }
+                });
+                setWindowProperties(settingsFrame);
             }
         });
+    }
+
+    private static void setWindowProperties(JFrame frame) {
+        frame.setUndecorated(true);
+        frame.pack();
+        frame.setSize(500,500);
+        frame.setVisible(true);
     }
 
     public static void main(String[] args) throws UnsupportedLookAndFeelException {
         UIManager.setLookAndFeel(new FlatMacDarkLaf());
         JFrame.setDefaultLookAndFeelDecorated(true);
-
         JFrame frame = new JFrame("Archutility");
         frame.setUndecorated(true);
-        frame.setContentPane(new MainScene().mainPanel);
+        MainScene mainScene = new MainScene();
+        frame.setContentPane(mainScene.pnlMain);
+        frame.setOpacity(mainScene.opacite);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
     }
 
-    private void createUIComponents() {
-
+    @Override
+    public void onSettingsUpdated() {
+        setSettingValues();
+        setProgressionCaptures();
+        pnlMain.revalidate();
+        pnlMain.repaint();
+        Window window = SwingUtilities.getWindowAncestor(pnlMain);
+        if (window != null) {
+            window.setOpacity(opacite);
+        }
+        System.out.println("post sauvegarde = " + nombrePersonnages);
     }
 
+    @Override
+    public void onMonstresUpdated() {
+        setProgressionCaptures();
+        pnlMain.revalidate();
+        pnlMain.repaint();
+    }
 }

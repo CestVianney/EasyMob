@@ -4,8 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum TypeMonstreEnum {
-    MONSTRE("monstre", "Monstre"),
     ARCHIMONSTRE("archimonstre", "Archimonstre"),
+    MONSTRE("monstre", "Monstre"),
     BOSS("boss","Boss"),
     TOUS("tous", "Tous");
 

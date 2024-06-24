@@ -79,6 +79,7 @@ public class BddCrud {
         }
         return result * nombrePersonnages;
     }
+
     public static int selectAllArchimonstresWithNombre(int nombrePersonnages) {
         String sql = "SELECT sum(CASE WHEN nombre <= ? THEN nombre ELSE ? END) as totalNombre FROM archimonstres";
         int result = 0;
@@ -144,7 +145,7 @@ public class BddCrud {
                         .image(rs.getString("image"))
                         .build();
                 boolean isExactZone = monstre.getZone().stream().anyMatch(z -> z.getNom().equals(zone));
-                if(isExactZone) {
+                if (isExactZone) {
                     monstres.add(monstre);
                 }
             }
@@ -162,6 +163,40 @@ public class BddCrud {
             zoneEnums.add(ZoneEnum.getZoneEnum(z));
         }
         return zoneEnums;
+    }
+
+    public static List<Monstre> getMonstersStartingWith(String text) {
+        String sql = "SELECT id, nom_monstre, nom_archimonstre FROM archimonstres WHERE (nom_archimonstre LIKE ?) OR (nom_monstre LIKE ?) LIMIT 10";
+        List<Monstre> monsters = new ArrayList<>();
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, text + "%");
+            pstmt.setString(2, text + "%");
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Monstre monstre = Monstre.builder()
+                        .id(rs.getInt("id"))
+                        .nomMonstre(rs.getString("nom_monstre"))
+                        .nomArchimonstre(rs.getString("nom_archimonstre"))
+                        .build();
+                monsters.add(monstre);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return monsters;
+    }
+
+    public static void addMonster(Monstre monster) {
+        String sql = "UPDATE archimonstres SET nombre = nombre + 1 WHERE id = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, monster.getId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     public static void main(String[] args) {

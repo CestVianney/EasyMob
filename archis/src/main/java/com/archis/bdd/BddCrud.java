@@ -8,6 +8,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.archis.bdd.BddFirstInit.createTableHistorique;
+
 public class BddCrud {
 
     static Connection connect() {
@@ -155,6 +157,10 @@ public class BddCrud {
         return monstres;
     }
 
+    public static void updateHistorique() {
+
+    }
+
     private static List<ZoneEnum> getZoneEnums(ResultSet rs) throws SQLException {
         String zoneMonstre = rs.getString("zone");
         List<String> zones = List.of(zoneMonstre.split(","));
@@ -166,7 +172,7 @@ public class BddCrud {
     }
 
     public static List<Monstre> getMonstersStartingWith(String text) {
-        String sql = "SELECT id, nom_monstre, nom_archimonstre FROM archimonstres WHERE (nom_archimonstre LIKE ?) OR (nom_monstre LIKE ?) LIMIT 10";
+        String sql = "SELECT * FROM archimonstres WHERE (nom_archimonstre LIKE ?) OR (nom_monstre LIKE ?) LIMIT 10";
         List<Monstre> monsters = new ArrayList<>();
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -174,10 +180,16 @@ public class BddCrud {
             pstmt.setString(2, text + "%");
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
+                List<ZoneEnum> zoneEnums = getZoneEnums(rs);
                 Monstre monstre = Monstre.builder()
                         .id(rs.getInt("id"))
                         .nomMonstre(rs.getString("nom_monstre"))
                         .nomArchimonstre(rs.getString("nom_archimonstre"))
+                        .type(rs.getString("type"))
+                        .etape(rs.getInt("etape"))
+                        .nombre(rs.getInt("nombre"))
+                        .zone(zoneEnums)
+                        .image(rs.getString("image"))
                         .build();
                 monsters.add(monstre);
             }
@@ -189,6 +201,32 @@ public class BddCrud {
 
     public static void addMonster(Monstre monster) {
         String sql = "UPDATE archimonstres SET nombre = nombre + 1 WHERE id = ?";
+        String sql2 = "INSERT INTO historique (id, nom_monstre, nom_archimonstre, type, etape, nombre, zone, image, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql2)) {
+            pstmt.setInt(1, monster.getId());
+            pstmt.setString(2, monster.getNomMonstre());
+            pstmt.setString(3, monster.getNomArchimonstre());
+            pstmt.setString(4, monster.getType());
+            pstmt.setInt(5, monster.getEtape());
+            pstmt.setInt(6, monster.getNombre());
+            pstmt.setString(7, monster.getZone().toString());
+            pstmt.setString(8, monster.getImage());
+            pstmt.setTimestamp(9, new Timestamp(System.currentTimeMillis()));
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+
+        //la meme chose mais ne cherche pas par id, je veux juste que l'entite dépassant 8 soit supprimée
+        String sql3 = "DELETE FROM historique WHERE date NOT IN (SELECT date FROM historique ORDER BY date DESC LIMIT 8)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql3)) {
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
 
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -199,8 +237,65 @@ public class BddCrud {
         }
     }
 
+    public static List<Monstre> getHistorique() {
+        String sql = "SELECT * FROM historique ORDER BY date DESC";
+        List<Monstre> monsters = new ArrayList<>();
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                List<ZoneEnum> zoneEnums = getZoneEnums(rs);
+                Monstre monstre = Monstre.builder()
+                        .id(rs.getInt("id"))
+                        .nomMonstre(rs.getString("nom_monstre"))
+                        .nomArchimonstre(rs.getString("nom_archimonstre"))
+                        .type(rs.getString("type"))
+                        .etape(rs.getInt("etape"))
+                        .nombre(rs.getInt("nombre"))
+                        .zone(zoneEnums)
+                        .image(rs.getString("image"))
+                        .build();
+                monsters.add(monstre);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return monsters;
+    }
+
+    public static void changeColumnType() {
+        String createNewTable = "CREATE TABLE IF NOT EXISTS historique_new (\n"
+                + " id INTEGER,\n"
+                + " nom_monstre TEXT NOT NULL,\n"
+                + " nom_archimonstre TEXT, \n"
+                + " type TEXT, \n"
+                + " etape INTEGER NOT NULL,\n"
+                + " nombre TEXT NOT NULL,\n"
+                + " zone INTEGER NOT NULL,\n"
+                + " image TEXT NOT NULL,\n"
+                + " date DATE NOT NULL\n"
+                + ");";
+
+        String copyData = "INSERT INTO historique_new (id, nom_monstre, nom_archimonstre, type, etape, nombre, zone, image, date) "
+                + "SELECT id, nom_monstre, nom_archimonstre, type, etape, nombre, zone, image, date FROM historique";
+
+        String dropOldTable = "DROP TABLE historique";
+
+        String renameTable = "ALTER TABLE historique_new RENAME TO historique";
+
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(createNewTable);
+            stmt.execute(copyData);
+            stmt.execute(dropOldTable);
+            stmt.execute(renameTable);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
     public static void main(String[] args) {
-        getSettings();
+//        changeColumnType();
     }
 
 }

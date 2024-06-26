@@ -65,6 +65,31 @@ public class BddFirstInit {
         }
     }
 
+    static void createTableHistorique() {
+        String sql = "CREATE TABLE IF NOT EXISTS historique (\n"
+                + " id INTEGER,\n"
+                + " nom_monstre TEXT NOT NULL,\n"
+                + " nom_archimonstre TEXT, \n"
+                + " type TEXT, \n"
+                + " etape INTEGER NOT NULL,\n"
+                + " nombre TEXT NOT NULL,\n"
+                + " zone INTEGER NOT NULL,\n"
+                + " image TEXT NOT NULL,\n"
+                + " date DATE NOT NULL\n"
+                + ");";
+
+
+        try {
+            Connection conn = connect();
+            if(!isTableExists(conn, "historique")) {
+                Statement stmt = conn.createStatement();
+                stmt.execute(sql);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
     static void eraseTableSettings() {
         String sql = "DROP TABLE IF EXISTS settings";
 

@@ -80,7 +80,7 @@
                   <maximum value="8"/>
                   <minimum value="1"/>
                   <minorTickSpacing value="1"/>
-                  <paintTicks value="false"/>
+                  <paintTicks value="true"/>
                   <paintTrack value="true"/>
                 </properties>
               </component>

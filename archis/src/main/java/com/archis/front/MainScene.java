@@ -140,6 +140,7 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
                         addMonsterFrame = null;
                     }
                 });
+                addMonsterFrame.setSize(500,500);
                 setWindowProperties(addMonsterFrame);
             }
         });
@@ -184,14 +185,13 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
     private static void setWindowProperties(JFrame frame) {
         frame.setUndecorated(true);
         frame.pack();
-        frame.setSize(500,500);
         frame.setVisible(true);
     }
 
     public static void main(String[] args) throws UnsupportedLookAndFeelException {
         UIManager.setLookAndFeel(new FlatMacDarkLaf());
         JFrame.setDefaultLookAndFeelDecorated(true);
-        JFrame frame = new JFrame("Archutility");
+        JFrame frame = new JFrame("Aux petits oignons");
         frame.setUndecorated(true);
         MainScene mainScene = new MainScene();
         frame.setContentPane(mainScene.pnlMain);

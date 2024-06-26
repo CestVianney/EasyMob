@@ -68,6 +68,12 @@ public class SettingsScene {
     }
 
     private void setSliderNbPersonnagesProperties() {
+        sliderNbPersonnages.setPaintTrack(true);
+        sliderNbPersonnages.setPaintTicks(true);
+        sliderNbPersonnages.setMajorTickSpacing(1);
+        sliderNbPersonnages.setSnapToTicks(true);
+        sliderNbPersonnages.setPaintLabels(true);
+
         for (Settings setting : settingsList) {
             switch (setting.getNom()) {
                 case "nombrepersonnages":

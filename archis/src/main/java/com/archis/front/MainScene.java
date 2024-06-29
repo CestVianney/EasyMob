@@ -42,6 +42,8 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
     private List<Settings> settingsList;
     private int nombrePersonnages;
     private float opacite;
+    private String apiKey;
+    private String userKey;
     private TypeMonstreEnum actualTypeMonstre = TypeMonstreEnum.ARCHIMONSTRE;
 
     public MainScene() {
@@ -62,6 +64,12 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
                     break;
                 case "nombrepersonnages":
                     nombrePersonnages = Integer.parseInt(setting.getValeur());
+                    break;
+                case "apikey":
+                    apiKey = setting.getValeur();
+                    break;
+                case "userKey":
+                    userKey = setting.getValeur();
                     break;
             }
         }

@@ -23,6 +23,10 @@ public class SettingsScene {
     private JSlider sliderNbPersonnages;
     private JButton colorButton;
     private JPanel pnlInnerBottom;
+    private JTextField apiKeyTextField;
+    private JTextField userKeyTextField;
+    private JButton validerButton;
+    private JTextField nomMetamob;
     private Color chosenColor;
     private SettingsUpdateListener settingsUpdateListener;
 
@@ -35,8 +39,43 @@ public class SettingsScene {
         setPanelMouseMovable(pnlMain);
         setSliderOpaciteProperties();
         setSliderNbPersonnagesProperties();
+        setTextAreasValues();
+        setValiderButton();
         return pnlMain;
     }
+
+    private void setTextAreasValues() {
+        for (Settings setting : settingsList) {
+            switch (setting.getNom()) {
+                case "apiKey":
+                    apiKeyTextField.setText(setting.getValeur());
+                    break;
+                case "userKey":
+                    userKeyTextField.setText(setting.getValeur());
+                    break;
+                case "nomPersonnage":
+                    nomMetamob.setText(setting.getValeur());
+                    break;
+            }
+        }
+    }
+
+    private void setValiderButton() {
+        validerButton.addActionListener(e -> {
+            updateSettings("apiKey", apiKeyTextField.getText());
+            updateSettings("userKey", userKeyTextField.getText());
+            updateSettings("nomPersonnage", nomMetamob.getText());
+            if (settingsUpdateListener != null) {
+                settingsUpdateListener.onSettingsUpdated();
+            }
+            Window window = SwingUtilities.getWindowAncestor(pnlMain);
+            if (window != null) {
+                window.dispose();
+            }
+        });
+    }
+
+
 
     private void setColorChooserButtonProperties() {
         colorButton.addActionListener(e -> {

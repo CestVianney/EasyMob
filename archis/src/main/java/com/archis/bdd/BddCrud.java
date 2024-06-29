@@ -8,8 +8,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.archis.bdd.BddFirstInit.createTableHistorique;
-
 public class BddCrud {
 
     static Connection connect() {
@@ -55,18 +53,57 @@ public class BddCrud {
         }
     }
 
-    private static void updateCountMonster(String name, int nombre, String type) {
-        String sql = "UPDATE archimonstres SET nombre = ? WHERE nom_monstre = ? and type = ?";
-
+    private static void updateCountMonsterSync(int id, int quantite, int propose, int recherche) {
+        String sql = "UPDATE archimonstres SET quantite = ?, propose = ?, recherche = ? WHERE id = ?";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, nombre);
-            pstmt.setString(2, name);
-            pstmt.setString(3, type);
+            pstmt.setInt(1, quantite);
+            pstmt.setInt(2, propose);
+            pstmt.setInt(3, recherche);
+            pstmt.setInt(4, id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    static String getApiKey() {
+        String sql = "SELECT valeur FROM settings WHERE nom = 'apiKey'";
+        String apiKey = "";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            apiKey = rs.getString("valeur");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return apiKey;
+    }
+
+    static String getUserKey() {
+        String sql = "SELECT valeur FROM settings WHERE nom = 'userKey'";
+        String userKey = "";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            userKey = rs.getString("valeur");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return userKey;
+    }
+
+    static String getNomPersonnage() {
+        String sql = "SELECT valeur FROM settings WHERE nom = 'nomPersonnage'";
+        String nomPersonnage = "";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            nomPersonnage = rs.getString("valeur");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return nomPersonnage;
     }
 
     public static int selectAllArchimonstres(int nombrePersonnages) {
@@ -83,7 +120,7 @@ public class BddCrud {
     }
 
     public static int selectAllArchimonstresWithNombre(int nombrePersonnages) {
-        String sql = "SELECT sum(CASE WHEN nombre <= ? THEN nombre ELSE ? END) as totalNombre FROM archimonstres";
+        String sql = "SELECT sum(CASE WHEN quantite <= ? THEN quantite ELSE ? END) as totalNombre FROM archimonstres";
         int result = 0;
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -112,7 +149,7 @@ public class BddCrud {
     }
 
     public static int selectAllArchimonstresByTypeWithNombre(String type, int nombrePersonnages) {
-        String sql = "SELECT sum(CASE WHEN nombre <= ? THEN nombre ELSE ? END) as totalNombre FROM archimonstres WHERE type = ?";
+        String sql = "SELECT sum(CASE WHEN quantite <= ? THEN quantite ELSE ? END) as totalNombre FROM archimonstres WHERE type = ?";
         int result = 0;
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -138,13 +175,15 @@ public class BddCrud {
                 List<ZoneEnum> zoneEnums = getZoneEnums(rs);
                 Monstre monstre = Monstre.builder()
                         .id(rs.getInt("id"))
-                        .nomMonstre(rs.getString("nom_monstre"))
-                        .nomArchimonstre(rs.getString("nom_archimonstre"))
+                        .nom(rs.getString("nom"))
+                        .slug(rs.getString("slug"))
                         .type(rs.getString("type"))
                         .etape(rs.getInt("etape"))
-                        .nombre(rs.getInt("nombre"))
+                        .quantite(rs.getInt("nombre"))
+                        .recherche(rs.getInt("recherche"))
+                        .propose(rs.getInt("propose"))
                         .zone(zoneEnums)
-                        .image(rs.getString("image"))
+                        .image(rs.getString("image_url"))
                         .build();
                 boolean isExactZone = monstre.getZone().stream().anyMatch(z -> z.getNom().equals(zone));
                 if (isExactZone) {
@@ -157,12 +196,11 @@ public class BddCrud {
         return monstres;
     }
 
-    public static void updateHistorique() {
-
-    }
-
     private static List<ZoneEnum> getZoneEnums(ResultSet rs) throws SQLException {
-        String zoneMonstre = rs.getString("zone");
+        String zoneMonstre = rs.getString("souszone");
+        if(zoneMonstre == null) {
+            return List.of();
+        }
         List<String> zones = List.of(zoneMonstre.split(","));
         List<ZoneEnum> zoneEnums = new ArrayList<>();
         for (String z : zones) {
@@ -172,24 +210,25 @@ public class BddCrud {
     }
 
     public static List<Monstre> getMonstersStartingWith(String text) {
-        String sql = "SELECT * FROM archimonstres WHERE (nom_archimonstre LIKE ?) OR (nom_monstre LIKE ?) LIMIT 10";
+        String sql = "SELECT * FROM archimonstres WHERE nom LIKE ? LIMIT 9";
         List<Monstre> monsters = new ArrayList<>();
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, text + "%");
-            pstmt.setString(2, text + "%");
+            pstmt.setString(1, "%" + text + "%");
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 List<ZoneEnum> zoneEnums = getZoneEnums(rs);
                 Monstre monstre = Monstre.builder()
                         .id(rs.getInt("id"))
-                        .nomMonstre(rs.getString("nom_monstre"))
-                        .nomArchimonstre(rs.getString("nom_archimonstre"))
+                        .nom(rs.getString("nom"))
+                        .slug(rs.getString("slug"))
                         .type(rs.getString("type"))
                         .etape(rs.getInt("etape"))
-                        .nombre(rs.getInt("nombre"))
+                        .quantite(rs.getInt("quantite"))
+                        .recherche(rs.getInt("recherche"))
+                        .propose(rs.getInt("propose"))
                         .zone(zoneEnums)
-                        .image(rs.getString("image"))
+                        .image(rs.getString("image_url"))
                         .build();
                 monsters.add(monstre);
             }
@@ -199,9 +238,50 @@ public class BddCrud {
         return monsters;
     }
 
+    public static List<Monstre> getHistorique() {
+        String sql = "SELECT * FROM historique ORDER BY date DESC";
+        List<Monstre> monsters = new ArrayList<>();
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                Monstre monstre = Monstre.builder()
+                        .id(rs.getInt("id"))
+                        .nom(rs.getString("nom"))
+                        .slug(rs.getString("slug"))
+                        .type(rs.getString("type"))
+                        .etape(rs.getInt("etape"))
+                        .image(rs.getString("image_url"))
+                        .build();
+                monsters.add(monstre);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return monsters;
+    }
+
+    public static boolean checkMonstreExists(String monstre) {
+        //check if monstre exists in the database and return true if it does
+        String sql = "SELECT count(*) as total FROM archimonstres WHERE nom = ?";
+        ResultSet rs;
+        //if sql false, check sql2
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, monstre);
+            rs = pstmt.executeQuery();
+            if (rs.getInt("total") > 0) {
+                return true;
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
+    }
+
     public static void addMonster(Monstre monster) {
-        String sql = "UPDATE archimonstres SET nombre = nombre + 1 WHERE id = ?";
-        String sql2 = "INSERT INTO historique (id, nom_monstre, nom_archimonstre, type, etape, nombre, zone, image, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "UPDATE archimonstres SET quantite = quantite + 1 WHERE id = ?";
+        String sql2 = "INSERT INTO historique (id, nom, slug, type, etape, image_url, date) VALUES (?, ?, ?, ?, ?, ?, ?)";
         String sql3 = "DELETE FROM historique WHERE date NOT IN (SELECT date FROM historique ORDER BY date DESC LIMIT 8)";
 
         try (Connection conn = connect();
@@ -210,14 +290,12 @@ public class BddCrud {
              PreparedStatement pstmt3 = conn.prepareStatement(sql)) {
 
             pstmt1.setInt(1, monster.getId());
-            pstmt1.setString(2, monster.getNomMonstre());
-            pstmt1.setString(3, monster.getNomArchimonstre());
+            pstmt1.setString(2, monster.getNom());
+            pstmt1.setString(3, monster.getSlug());
             pstmt1.setString(4, monster.getType());
             pstmt1.setInt(5, monster.getEtape());
-            pstmt1.setInt(6, monster.getNombre());
-            pstmt1.setString(7, monster.getZone().toString());
-            pstmt1.setString(8, monster.getImage());
-            pstmt1.setTimestamp(9, new Timestamp(System.currentTimeMillis()));
+            pstmt1.setString(6, monster.getImage());
+            pstmt1.setTimestamp(7, new Timestamp(System.currentTimeMillis()));
             pstmt1.executeUpdate();
 
             pstmt2.executeUpdate();
@@ -231,7 +309,7 @@ public class BddCrud {
     }
 
     public static void removeOneMonster(Monstre monster) {
-        String sql = "UPDATE archimonstres SET nombre = nombre - 1 WHERE id = ?";
+        String sql = "UPDATE archimonstres SET quantite = quantite - 1 WHERE id = ?";
         String sql2 = "DELETE FROM historique WHERE rowid = (SELECT rowid FROM historique WHERE id = ? ORDER BY date DESC LIMIT 1)";
 
         try (Connection conn = connect();
@@ -248,95 +326,16 @@ public class BddCrud {
         }
     }
 
-    public static List<Monstre> getHistorique() {
-        String sql = "SELECT * FROM historique ORDER BY date DESC";
-        List<Monstre> monsters = new ArrayList<>();
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                List<ZoneEnum> zoneEnums = getZoneEnums(rs);
-                Monstre monstre = Monstre.builder()
-                        .id(rs.getInt("id"))
-                        .nomMonstre(rs.getString("nom_monstre"))
-                        .nomArchimonstre(rs.getString("nom_archimonstre"))
-                        .type(rs.getString("type"))
-                        .etape(rs.getInt("etape"))
-                        .nombre(rs.getInt("nombre"))
-                        .zone(zoneEnums)
-                        .image(rs.getString("image"))
-                        .build();
-                monsters.add(monstre);
-            }
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return monsters;
-    }
-
-    public static void changeColumnType() {
-        String createNewTable = "CREATE TABLE IF NOT EXISTS historique_new (\n"
-                + " id INTEGER,\n"
-                + " nom_monstre TEXT NOT NULL,\n"
-                + " nom_archimonstre TEXT, \n"
-                + " type TEXT, \n"
-                + " etape INTEGER NOT NULL,\n"
-                + " nombre TEXT NOT NULL,\n"
-                + " zone INTEGER NOT NULL,\n"
-                + " image TEXT NOT NULL,\n"
-                + " date DATE NOT NULL\n"
-                + ");";
-
-        String copyData = "INSERT INTO historique_new (id, nom_monstre, nom_archimonstre, type, etape, nombre, zone, image, date) "
-                + "SELECT id, nom_monstre, nom_archimonstre, type, etape, nombre, zone, image, date FROM historique";
-
-        String dropOldTable = "DROP TABLE historique";
-
-        String renameTable = "ALTER TABLE historique_new RENAME TO historique";
-
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute(createNewTable);
-            stmt.execute(copyData);
-            stmt.execute(dropOldTable);
-            stmt.execute(renameTable);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    public static boolean checkMonstreExists(String monstre) {
-          //check if monstre exists in the database and return true if it does
-        String sql = "SELECT count(*) as total FROM archimonstres WHERE nom_archimonstre = ?";
-        String sql2 = "SELECT count(*) as total FROM archimonstres WHERE nom_monstre = ?";
-        ResultSet rs;
-        //if sql false, check sql2
-        try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, monstre);
-            rs = pstmt.executeQuery();
-            if (rs.getInt("total") > 0) {
-                return true;
-            }
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-
-        try {
-            PreparedStatement pstmt2 = connect().prepareStatement(sql2);
-            pstmt2.setString(1, monstre);
-            rs = pstmt2.executeQuery();
-            if (rs.getInt("total") > 0) {
-                return true;
-            }
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return false;
+    public static void syncWithMetamob() {
+        MetamobCrud metamobCrud = new MetamobCrud();
+        List<Monstre> monstres = metamobCrud.getMonstresFromMetamob();
+        monstres.forEach(monstre -> {
+                updateCountMonsterSync(monstre.getId(), monstre.getQuantite(), monstre.getPropose(), monstre.getRecherche());
+        });
     }
 
     public static void main(String[] args) {
-//        changeColumnType();
+        syncWithMetamob();
     }
 
 }

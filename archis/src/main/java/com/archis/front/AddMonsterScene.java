@@ -5,6 +5,7 @@ import com.archis.front.itfc.MonstresUpdateListener;
 import com.archis.front.itfc.ScreenCaptureListener;
 import com.archis.model.Monstre;
 import com.archis.ocr.ScreenCapture;
+import com.archis.utils.ImageRenderer;
 import org.jnativehook.GlobalScreen;
 import org.jnativehook.NativeHookException;
 import org.jnativehook.keyboard.NativeKeyEvent;
@@ -137,14 +138,8 @@ public class AddMonsterScene implements ScreenCaptureListener {
                     listModel.clear();
                     monsterMap.clear();
                     for (Monstre monster : monsters) {
-                        String monsterName;
-                        if (monster.getNomArchimonstre().isEmpty()) {
-                            monsterName = monster.getNomMonstre();
-                        } else {
-                            monsterName = monster.getNomArchimonstre() + " (" + monster.getNomMonstre() + ")";
-                        }
-                        listModel.addElement(monsterName);
-                        monsterMap.put(monsterName, monster);
+                        listModel.addElement(monster.getNom());
+                        monsterMap.put(monster.getNom(), monster);
                     }
                     int difference = 10 - monsters.size();
                     for (int i = 0; i < difference; i++) {
@@ -226,10 +221,12 @@ public class AddMonsterScene implements ScreenCaptureListener {
 
         List<Monstre> historiqueMonstres = BddCrud.getHistorique();
         historiqueMonstres.forEach(monstre -> {
-            String monstreName = monstre.getNomArchimonstre().isEmpty() ? monstre.getNomMonstre() : monstre.getNomArchimonstre();
+            String monstreName = monstre.getNom();
+            String imgUrl = monstre.getImage();
             monstreMap.put(monstreName, monstre);
-            model.addRow(new Object[]{"", monstreName, "Supprimer"});
+            model.addRow(new Object[]{imgUrl, monstreName, "Supprimer"});
         });
+        table1.getColumnModel().getColumn(0).setCellRenderer(new ImageRenderer());
     }
 
     public Map<String, Monstre> getMonstreMap() {

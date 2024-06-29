@@ -1,7 +1,11 @@
 package com.archis.front;
 
 import com.archis.bdd.BddCrud;
+import com.archis.bdd.MetamobCrud;
+import com.archis.model.Monstre;
 import com.archis.utils.MonstreTableCellRenderer;
+import com.archis.utils.TypeAjoutEnum;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
@@ -38,6 +42,7 @@ public class PopupCapture {
         model.addColumn("Existe dans la BDD");
 
         setTableValues(table1, monstres);
+        setValiderButton();
         table1.setRowHeight(40);
         table1.setPreferredScrollableViewportSize(new Dimension(table1.getPreferredSize().width, 320));
         TableColumn column = table1.getColumnModel().getColumn(1);
@@ -61,7 +66,6 @@ public class PopupCapture {
         }
         table1.setModel(model);
 
-        // Utilisez le TableCellRenderer personnalisé pour votre table
         table1.setDefaultRenderer(Object.class, new MonstreTableCellRenderer());
 
         model.addTableModelListener(e -> {
@@ -69,22 +73,42 @@ public class PopupCapture {
                 int row = e.getFirstRow();
                 int column = e.getColumn();
 
-                // Si la colonne 'Nom du Monstre' est modifiée
                 if (column == 0) {
-                    // Obtenez le nouveau nom du monstre
                     String newMonstreName = (String) model.getValueAt(row, column);
-
-                    // Vérifiez si le nouveau monstre existe dans la BDD
                     boolean existsInBdd = BddCrud.checkMonstreExists(newMonstreName);
-
-                    // Mettez à jour la colonne 'Existe dans la BDD' avec le nouveau résultat
                     model.setValueAt(existsInBdd, row, 1);
-
-                    // Redessinez la table pour mettre à jour les couleurs des lignes
                     table1.repaint();
                 }
             }
         });
     }
+    private void setValiderButton() {
+        validerButton.addActionListener(e -> {
+            for (int i = 0; i < model.getRowCount(); i++) {
+                String nomMonstre = (String) model.getValueAt(i, 0);
+                Monstre monstre = BddCrud.getMonstreByName(nomMonstre);
+                    try {
+                        MetamobCrud metamobCrud = new MetamobCrud();
+                        boolean hasBeenAdded = metamobCrud.addMonstre(monstre.getId(), TypeAjoutEnum.QUANTITE, "+1");
+                        BddCrud.addMonster(monstre);
+                        if(hasBeenAdded) {
+                            System.out.println("Monstre ajouté sur Metamob : " + monstre.getNom());
+                            model.setValueAt(true, i, 1);
+                            table1.repaint();
+                            //close the window
+                            Window window = SwingUtilities.getWindowAncestor(pnlMain);
+                            if (window != null) {
+                                window.dispose();
+                            }
+                        } else {
+                            JOptionPane.showMessageDialog(null, "Erreur lors de l'ajout du monstre sur Metamob");
+                        }
+                    } catch (JsonProcessingException ex) {
+                        throw new RuntimeException(ex);
+                    }
+            }
+        });
+    }
+
 }
 

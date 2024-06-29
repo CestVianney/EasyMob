@@ -27,6 +27,7 @@ public class SettingsScene {
     private JTextField userKeyTextField;
     private JButton validerButton;
     private JTextField nomMetamob;
+    private JCheckBox activerMetamobCheckBox;
     private Color chosenColor;
     private SettingsUpdateListener settingsUpdateListener;
 
@@ -41,7 +42,24 @@ public class SettingsScene {
         setSliderNbPersonnagesProperties();
         setTextAreasValues();
         setValiderButton();
+        setActiverMetamobCheckBox();
         return pnlMain;
+    }
+
+    private void setActiverMetamobCheckBox() {
+        for (Settings setting : settingsList) {
+            switch (setting.getNom()) {
+                case "activerMetamob":
+                    activerMetamobCheckBox.setSelected(setting.getValeur().equals("true"));
+                    break;
+            }
+        }
+        activerMetamobCheckBox.addActionListener(e -> {
+            updateSettings("activerMetamob", String.valueOf(activerMetamobCheckBox.isSelected()));
+            if (settingsUpdateListener != null) {
+                settingsUpdateListener.onSettingsUpdated();
+            }
+        });
     }
 
     private void setTextAreasValues() {

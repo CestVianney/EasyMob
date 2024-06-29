@@ -6,15 +6,15 @@ import java.util.List;
 import java.util.Map;
 
 public class ResponseBody {
-    private List<String> reussite;
+    private Map<String, List<String>> reussite;
     private List<String> erreurs;
 
     @JsonProperty("reussite")
-    public List<String> getReussite() {
+    public Map<String, List<String>> getReussite() {
         return reussite;
     }
 
-    public void setReussite(List<String> reussite) {
+    public void setReussite(Map<String, List<String>> reussite) {
         this.reussite = reussite;
     }
 

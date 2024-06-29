@@ -106,6 +106,19 @@ public class BddCrud {
         return nomPersonnage;
     }
 
+    static boolean isMetamobActive() {
+        String sql = "SELECT valeur FROM settings WHERE nom = 'activerMetamob'";
+        boolean activerMetamob = false;
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            activerMetamob = rs.getString("valeur").equals("true");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return activerMetamob;
+    }
+
     public static int selectAllArchimonstres(int nombrePersonnages) {
         String sql = "SELECT count(*) as total FROM archimonstres";
         int result = 0;
@@ -261,6 +274,30 @@ public class BddCrud {
         return monsters;
     }
 
+    public static Monstre getMonstreByName(String nomMonstre) {
+        String sql = "SELECT * FROM archimonstres WHERE nom = ?";
+        Monstre monstre = null;
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, nomMonstre);
+            ResultSet rs = pstmt.executeQuery();
+            monstre = Monstre.builder()
+                    .id(rs.getInt("id"))
+                    .nom(rs.getString("nom"))
+                    .slug(rs.getString("slug"))
+                    .type(rs.getString("type"))
+                    .etape(rs.getInt("etape"))
+                    .quantite(rs.getInt("quantite"))
+                    .recherche(rs.getInt("recherche"))
+                    .propose(rs.getInt("propose"))
+                    .image(rs.getString("image_url"))
+                    .build();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return monstre;
+    }
+
     public static boolean checkMonstreExists(String monstre) {
         //check if monstre exists in the database and return true if it does
         String sql = "SELECT count(*) as total FROM archimonstres WHERE nom = ?";
@@ -335,7 +372,7 @@ public class BddCrud {
     }
 
     public static void main(String[] args) {
-        syncWithMetamob();
+
     }
 
 }

@@ -54,7 +54,8 @@ public class BddFirstInit {
                 "INSERT INTO settings(nom, valeur) VALUES ('nombrepersonnages','1')",
                 "INSERT INTO settings(nom, valeur) VALUES ('apiKey', '')",
                 "INSERT INTO settings(nom, valeur) VALUES ('userKey', '')",
-                "INSERT INTO settings(nom, valeur) VALUES ('nomPersonnage', '')");
+                "INSERT INTO settings(nom, valeur) VALUES ('nomPersonnage', '')",
+                "INSERT INTO settings(nom, valeur) VALUES ('activerMetamob', 'false')");
 
         try {
             Connection conn = connect();

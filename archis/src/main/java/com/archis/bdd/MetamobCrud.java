@@ -18,19 +18,24 @@ import java.util.List;
 
 
 public class MetamobCrud {
-    private final RestTemplate restTemplate = getRestTemplate();
-    private String nomPersonnage;
+    private  final RestTemplate restTemplate = getRestTemplate();
+    private  String nomPersonnage;
+    private  boolean isMetamobActive;
 
     public MetamobCrud() {
         nomPersonnage = BddCrud.getNomPersonnage();
+        isMetamobActive = BddCrud.isMetamobActive();
     }
 
     public boolean addMonstre(int id, TypeAjoutEnum type, String quantite) throws JsonProcessingException {
+        if(!isMetamobActive) {
+            return true;
+        }
         String url = "https://api.metamob.fr/utilisateurs/" + nomPersonnage + "/monstres";
         String body = "[{\n" +
                 "  \"id\": \"" + id + "\",\n" +
                 "  \"etat\": \"" + type.getValue() + "\",\n" +
-                "  \"quantite\": \"" + type.getValue() + "\"\n" +
+                "  \"quantite\": \"" + quantite + "\"\n" +
                 "}]";
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(body, getHeaders().getHeaders()), String.class);
 
@@ -45,6 +50,9 @@ public class MetamobCrud {
     }
 
     public List<Monstre> getMonstresFromMetamob() {
+        if(!isMetamobActive) {
+            return List.of();
+        }
         String url = "https://api.metamob.fr/utilisateurs/" + nomPersonnage + "/monstres";
         String result = getValuesFromUrl(url);
         ObjectMapper mapper = new ObjectMapper();
@@ -58,13 +66,11 @@ public class MetamobCrud {
     }
 
     public String getValuesFromUrl(String url) {
+        if(!isMetamobActive) {
+            return "";
+        }
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, getHeaders(), String.class);
         return response.getBody();
-    }
-
-    public static void main(String[] args) throws JsonProcessingException {
-        MetamobCrud metamobCrud = new MetamobCrud();
-        metamobCrud.getMonstresFromMetamob();
     }
 
     private RestTemplate getRestTemplate() {

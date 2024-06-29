@@ -202,36 +202,47 @@ public class BddCrud {
     public static void addMonster(Monstre monster) {
         String sql = "UPDATE archimonstres SET nombre = nombre + 1 WHERE id = ?";
         String sql2 = "INSERT INTO historique (id, nom_monstre, nom_archimonstre, type, etape, nombre, zone, image, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql2)) {
-            pstmt.setInt(1, monster.getId());
-            pstmt.setString(2, monster.getNomMonstre());
-            pstmt.setString(3, monster.getNomArchimonstre());
-            pstmt.setString(4, monster.getType());
-            pstmt.setInt(5, monster.getEtape());
-            pstmt.setInt(6, monster.getNombre());
-            pstmt.setString(7, monster.getZone().toString());
-            pstmt.setString(8, monster.getImage());
-            pstmt.setTimestamp(9, new Timestamp(System.currentTimeMillis()));
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-
-        //la meme chose mais ne cherche pas par id, je veux juste que l'entite dépassant 8 soit supprimée
         String sql3 = "DELETE FROM historique WHERE date NOT IN (SELECT date FROM historique ORDER BY date DESC LIMIT 8)";
+
         try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql3)) {
-            pstmt.executeUpdate();
+             PreparedStatement pstmt1 = conn.prepareStatement(sql2);
+             PreparedStatement pstmt2 = conn.prepareStatement(sql3);
+             PreparedStatement pstmt3 = conn.prepareStatement(sql)) {
+
+            pstmt1.setInt(1, monster.getId());
+            pstmt1.setString(2, monster.getNomMonstre());
+            pstmt1.setString(3, monster.getNomArchimonstre());
+            pstmt1.setString(4, monster.getType());
+            pstmt1.setInt(5, monster.getEtape());
+            pstmt1.setInt(6, monster.getNombre());
+            pstmt1.setString(7, monster.getZone().toString());
+            pstmt1.setString(8, monster.getImage());
+            pstmt1.setTimestamp(9, new Timestamp(System.currentTimeMillis()));
+            pstmt1.executeUpdate();
+
+            pstmt2.executeUpdate();
+
+            pstmt3.setInt(1, monster.getId());
+            pstmt3.executeUpdate();
+
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    public static void removeOneMonster(Monstre monster) {
+        String sql = "UPDATE archimonstres SET nombre = nombre - 1 WHERE id = ?";
+        String sql2 = "DELETE FROM historique WHERE rowid = (SELECT rowid FROM historique WHERE id = ? ORDER BY date DESC LIMIT 1)";
 
         try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, monster.getId());
-            pstmt.executeUpdate();
+             PreparedStatement pstmt1 = conn.prepareStatement(sql);
+             PreparedStatement pstmt2 = conn.prepareStatement(sql2)) {
+
+            pstmt1.setInt(1, monster.getId());
+            pstmt1.executeUpdate();
+
+            pstmt2.setInt(1, monster.getId());
+            pstmt2.executeUpdate();
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -292,6 +303,36 @@ public class BddCrud {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    public static boolean checkMonstreExists(String monstre) {
+          //check if monstre exists in the database and return true if it does
+        String sql = "SELECT count(*) as total FROM archimonstres WHERE nom_archimonstre = ?";
+        String sql2 = "SELECT count(*) as total FROM archimonstres WHERE nom_monstre = ?";
+        ResultSet rs;
+        //if sql false, check sql2
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, monstre);
+            rs = pstmt.executeQuery();
+            if (rs.getInt("total") > 0) {
+                return true;
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+
+        try {
+            PreparedStatement pstmt2 = connect().prepareStatement(sql2);
+            pstmt2.setString(1, monstre);
+            rs = pstmt2.executeQuery();
+            if (rs.getInt("total") > 0) {
+                return true;
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
     }
 
     public static void main(String[] args) {

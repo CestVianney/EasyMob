@@ -2,7 +2,13 @@ package com.archis.front;
 
 import com.archis.bdd.BddCrud;
 import com.archis.front.itfc.MonstresUpdateListener;
+import com.archis.front.itfc.ScreenCaptureListener;
 import com.archis.model.Monstre;
+import com.archis.ocr.ScreenCapture;
+import org.jnativehook.GlobalScreen;
+import org.jnativehook.NativeHookException;
+import org.jnativehook.keyboard.NativeKeyEvent;
+import org.jnativehook.keyboard.NativeKeyListener;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -18,12 +24,11 @@ import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import static com.archis.utils.SceneUtils.setCloseButtonPanel;
 import static com.archis.utils.SceneUtils.setPanelMouseMovable;
 
-public class AddMonsterScene {
+public class AddMonsterScene implements ScreenCaptureListener {
     private JPanel pnlMain;
     private JPanel pnlCenter;
     private JPanel pnlInnerNorth;
@@ -40,9 +45,10 @@ public class AddMonsterScene {
     private Monstre selectedMonster;
     private Map<String, Monstre> monsterMap;
     private MonstresUpdateListener monstresUpdateListener;
+    private Map<String, Monstre> monstreMap = new HashMap<>();
 
 
-    public JPanel AddMonsterScene() {
+    public JPanel AddMonsterScene() throws AWTException {
         monsterMap = new HashMap<>();
         setCloseButtonPanel(pnlMain, xButton);
         setPanelMouseMovable(pnlMain);
@@ -50,7 +56,45 @@ public class AddMonsterScene {
         setAddMonsterButtonProperties();
         setHistoriquePanel();
         setList();
+        setScreenButton();
+
         return pnlMain;
+    }
+
+    private void setScreenButton() {
+        try {
+            GlobalScreen.registerNativeHook();
+        } catch (NativeHookException ex) {
+            System.err.println("There was a problem registering the native hook.");
+            System.err.println(ex.getMessage());
+            System.exit(1);
+        }
+
+        GlobalScreen.addNativeKeyListener(new NativeKeyListener() {
+            public void nativeKeyPressed(NativeKeyEvent e) {
+                if (e.getKeyCode() == NativeKeyEvent.VC_F1) {
+                    screenButton.doClick();
+                }
+            }
+
+            public void nativeKeyReleased(NativeKeyEvent e) {
+                // Nothing here
+            }
+
+            public void nativeKeyTyped(NativeKeyEvent e) {
+                // Nothing here
+            }
+        });
+
+        screenButton.addActionListener(e -> {
+            try {
+                ScreenCapture screenCapture = new ScreenCapture();
+                screenCapture.setScreenCaptureListener(this);
+                screenCapture.captureAndExtractMonstres();
+            } catch (AWTException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
     }
 
     private void setList() {
@@ -151,7 +195,7 @@ public class AddMonsterScene {
         });
     }
 
-    private void setHistoriquePanel() {
+    void setHistoriquePanel() {
         DefaultTableModel model = new DefaultTableModel();
         model.addColumn("img");
         model.addColumn("nom");
@@ -173,7 +217,7 @@ public class AddMonsterScene {
         column2.setPreferredWidth(40);
 
         table1.getColumnModel().getColumn(2).setCellRenderer(new ButtonRenderer());
-        table1.getColumnModel().getColumn(2).setCellEditor(new ButtonEditor(new JCheckBox()));
+        table1.getColumnModel().getColumn(2).setCellEditor(new ButtonEditor(new JCheckBox(), this, monstresUpdateListener, table1));
 
         StripedRowRenderer stripedRowRenderer = new StripedRowRenderer();
         for (int i = 0; i < table1.getColumnCount(); i++) {
@@ -181,16 +225,25 @@ public class AddMonsterScene {
         }
 
         List<Monstre> historiqueMonstres = BddCrud.getHistorique();
-        historiqueMonstres.forEach(monstre ->
-            model.addRow(new Object[]{"", monstre.getNomArchimonstre().isEmpty() ? monstre.getNomMonstre() : monstre.getNomArchimonstre(), "Supprimer"})
-        );
+        historiqueMonstres.forEach(monstre -> {
+            String monstreName = monstre.getNomArchimonstre().isEmpty() ? monstre.getNomMonstre() : monstre.getNomArchimonstre();
+            monstreMap.put(monstreName, monstre);
+            model.addRow(new Object[]{"", monstreName, "Supprimer"});
+        });
     }
 
+    public Map<String, Monstre> getMonstreMap() {
+        return monstreMap;
+    }
 
     void setMonstresUpdateListener(MonstresUpdateListener monstresUpdateListener) {
         this.monstresUpdateListener = monstresUpdateListener;
     }
 
+    @Override
+    public void onCaptureCompleted(List<String> monstres) {
+        new PopupCapture(monstres);
+    }
 }
 
 class ButtonRenderer extends JButton implements TableCellRenderer {
@@ -217,12 +270,23 @@ class ButtonEditor extends DefaultCellEditor {
     protected JButton button;
     private String label;
     private boolean isPushed;
+    private Monstre monstre;
+    private AddMonsterScene addMonsterScene;
+    private MonstresUpdateListener monstresUpdateListener;
+    private JTable table;
 
-    public ButtonEditor(JCheckBox checkBox) {
+    public ButtonEditor(JCheckBox checkBox, AddMonsterScene addMonsterScene, MonstresUpdateListener monstresUpdateListener, JTable table) {
         super(checkBox);
+        this.addMonsterScene = addMonsterScene;
+        this.monstresUpdateListener = monstresUpdateListener;
+        this.table = table;
         button = new JButton();
         button.setOpaque(true);
-        button.addActionListener(e -> fireEditingStopped());
+        button.addActionListener(e -> {
+            if (table.getSelectedRow() != -1) {
+                fireEditingStopped();
+            }
+        });
     }
 
     public Component getTableCellEditorComponent(JTable table, Object value,
@@ -237,26 +301,38 @@ class ButtonEditor extends DefaultCellEditor {
         label = (value == null) ? "" : value.toString();
         button.setText(label);
         isPushed = true;
+
+        // Récupérer le monstre à partir de la Map
+        String monstreName = table.getModel().getValueAt(row, 1).toString();
+        this.monstre = addMonsterScene.getMonstreMap().get(monstreName);
+
         return button;
     }
 
     public Object getCellEditorValue() {
         if (isPushed) {
-            // Vous pouvez afficher un message d'information ici
-            // ou effectuer une action en base de données
-            System.out.println(label + ": Button pressed");
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1 && selectedRow < table.getModel().getRowCount()) { // Check if the row exists in the table model
+                if (table.getCellEditor() != null) {
+                    table.getCellEditor().stopCellEditing();
+                }
+                BddCrud.removeOneMonster(monstre);
+                addMonsterScene.setHistoriquePanel();
+                monstresUpdateListener.onMonstresUpdated();
+            }
         }
         isPushed = false;
         return new String(label);
     }
-
     public boolean stopCellEditing() {
         isPushed = false;
         return super.stopCellEditing();
     }
 
     protected void fireEditingStopped() {
-        super.fireEditingStopped();
+        if (table.getSelectedRow() != -1) {
+            super.fireEditingStopped();
+        }
     }
 }
 

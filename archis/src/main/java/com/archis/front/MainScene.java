@@ -7,6 +7,7 @@ import com.archis.model.Settings;
 import com.archis.utils.SettingsSingleton;
 import com.archis.utils.TypeMonstreEnum;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import org.jnativehook.GlobalScreen;
 
 import javax.swing.*;
 
@@ -14,6 +15,8 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static com.archis.utils.SceneUtils.*;
 
@@ -79,7 +82,6 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
             totalMonstres = BddCrud.selectAllArchimonstresByType(actualTypeMonstre.getTypeBdd(), nombrePersonnages);
             countMonstres = BddCrud.selectAllArchimonstresByTypeWithNombre(actualTypeMonstre.getTypeBdd(), nombrePersonnages);
         }
-        System.out.println(totalMonstres);
         progressBar1.setMaximum(totalMonstres);
         progressBar1.setValue(countMonstres);
         progressBar1.setString(countMonstres + "/" + totalMonstres);
@@ -133,7 +135,11 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
                 addMonsterFrame = new JFrame("Ajouter un monstre");
                 AddMonsterScene addMonsterScene = new AddMonsterScene();
                 addMonsterScene.setMonstresUpdateListener(this);
-                addMonsterFrame.setContentPane(addMonsterScene.AddMonsterScene());
+                try {
+                    addMonsterFrame.setContentPane(addMonsterScene.AddMonsterScene());
+                } catch (AWTException ex) {
+                    throw new RuntimeException(ex);
+                }
                 addMonsterFrame.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosed(WindowEvent e) {
@@ -190,6 +196,8 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
 
     public static void main(String[] args) throws UnsupportedLookAndFeelException {
         UIManager.setLookAndFeel(new FlatMacDarkLaf());
+        Logger logger = Logger.getLogger(GlobalScreen.class.getPackage().getName());
+        logger.setLevel(Level.OFF);
         JFrame.setDefaultLookAndFeelDecorated(true);
         JFrame frame = new JFrame("Aux petits oignons");
         frame.setUndecorated(true);
@@ -211,7 +219,6 @@ public class MainScene implements SettingsUpdateListener, MonstresUpdateListener
         if (window != null) {
             window.setOpacity(opacite);
         }
-        System.out.println("post sauvegarde = " + nombrePersonnages);
     }
 
     @Override

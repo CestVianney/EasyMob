@@ -41,7 +41,6 @@ public class SceneUtils {
                 closeButton.setBackground(Color.RED);
             }
         });
-
         closeButton.addActionListener(e -> {
             Window window = SwingUtilities.getWindowAncestor(panel);
             if (window != null) {
@@ -97,6 +96,13 @@ public class SceneUtils {
                 frame.setLocation(X, Y);
             }
         });
+    }
+
+    public static void closeWindowPanel(JPanel panel) {
+        Window window = SwingUtilities.getWindowAncestor(panel);
+        if (window != null) {
+            window.dispose();
+        }
     }
 
 }

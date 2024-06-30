@@ -9,10 +9,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.archis.utils.SceneUtils.*;
@@ -82,33 +83,42 @@ public class PopupCapture {
             }
         });
     }
+
     private void setValiderButton() {
         validerButton.addActionListener(e -> {
-            for (int i = 0; i < model.getRowCount(); i++) {
-                String nomMonstre = (String) model.getValueAt(i, 0);
-                Monstre monstre = BddCrud.getMonstreByName(nomMonstre);
-                    try {
-                        MetamobCrud metamobCrud = new MetamobCrud();
-                        boolean hasBeenAdded = metamobCrud.addMonstre(monstre.getId(), TypeAjoutEnum.QUANTITE, "+1");
-                        BddCrud.addMonster(monstre);
-                        if(hasBeenAdded) {
-                            System.out.println("Monstre ajouté sur Metamob : " + monstre.getNom());
-                            model.setValueAt(true, i, 1);
-                            table1.repaint();
-                            //close the window
-                            Window window = SwingUtilities.getWindowAncestor(pnlMain);
-                            if (window != null) {
-                                window.dispose();
-                            }
-                        } else {
-                            JOptionPane.showMessageDialog(null, "Erreur lors de l'ajout du monstre sur Metamob");
-                        }
-                    } catch (JsonProcessingException ex) {
-                        throw new RuntimeException(ex);
-                    }
-            }
+            addToMetamobAndBdd();
         });
     }
 
+    private void addToMetamobAndBdd() {
+        List<Integer> ids = new ArrayList<>();
+        List<Monstre> monstres = new ArrayList<>();
+        for (int i = 0; i < model.getRowCount(); i++) {
+            String nomMonstre = (String) model.getValueAt(i, 0);
+            Monstre monstre = BddCrud.getMonstreByName(nomMonstre);
+            if (monstre != null) {
+                ids.add(monstre.getId());
+                monstres.add(monstre);
+            }
+        }
+        if (!ids.isEmpty()) {
+            try {
+                MetamobCrud metamobCrud = new MetamobCrud();
+                boolean hasBeenAdded = metamobCrud.addMonstres(ids, TypeAjoutEnum.QUANTITE, "+1");
+                if (hasBeenAdded) {
+                    monstres.forEach(BddCrud::addMonster);
+                    Window window = SwingUtilities.getWindowAncestor(pnlMain);
+                    if (window != null) {
+                        window.dispose();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null, "Erreur lors de l'ajout du monstre sur Metamob");
+                }
+            } catch (JsonProcessingException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
 }
+
 

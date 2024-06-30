@@ -275,11 +275,11 @@ public class BddCrud {
     }
 
     public static Monstre getMonstreByName(String nomMonstre) {
-        String sql = "SELECT * FROM archimonstres WHERE nom = ?";
+        String sql = "SELECT * FROM archimonstres WHERE lower(nom) = ?";
         Monstre monstre = null;
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, nomMonstre);
+            pstmt.setString(1, nomMonstre.toLowerCase());
             ResultSet rs = pstmt.executeQuery();
             monstre = Monstre.builder()
                     .id(rs.getInt("id"))
@@ -300,12 +300,12 @@ public class BddCrud {
 
     public static boolean checkMonstreExists(String monstre) {
         //check if monstre exists in the database and return true if it does
-        String sql = "SELECT count(*) as total FROM archimonstres WHERE nom = ?";
+        String sql = "SELECT count(*) as total FROM archimonstres WHERE lower(nom) = ?";
         ResultSet rs;
         //if sql false, check sql2
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, monstre);
+            pstmt.setString(1, monstre.toLowerCase());
             rs = pstmt.executeQuery();
             if (rs.getInt("total") > 0) {
                 return true;
@@ -372,7 +372,7 @@ public class BddCrud {
     }
 
     public static void main(String[] args) {
-
+        syncWithMetamob();
     }
 
 }

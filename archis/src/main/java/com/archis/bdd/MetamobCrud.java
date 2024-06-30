@@ -14,6 +14,7 @@ import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -27,28 +28,30 @@ public class MetamobCrud {
         isMetamobActive = BddCrud.isMetamobActive();
     }
 
-    public boolean addMonstre(int id, TypeAjoutEnum type, String quantite) throws JsonProcessingException {
+    public boolean addMonstres(List<Integer> ids, TypeAjoutEnum type, String quantite) throws JsonProcessingException {
         if(!isMetamobActive) {
             return true;
         }
         String url = "https://api.metamob.fr/utilisateurs/" + nomPersonnage + "/monstres";
-        String body = "[{\n" +
-                "  \"id\": \"" + id + "\",\n" +
-                "  \"etat\": \"" + type.getValue() + "\",\n" +
-                "  \"quantite\": \"" + quantite + "\"\n" +
-                "}]";
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(body, getHeaders().getHeaders()), String.class);
+
+        List<String> bodies = new ArrayList<>();
+        for (Integer id : ids) {
+            String body = "{\n" +
+                    "  \"id\": \"" + id + "\",\n" +
+                    "  \"etat\": \"" + type.getValue() + "\",\n" +
+                    "  \"quantite\": \"" + quantite + "\"\n" +
+                    "}";
+            bodies.add(body);
+        }
+        String finalBody = "[" + String.join(",", bodies) + "]";
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(finalBody, getHeaders().getHeaders()), String.class);
 
         ObjectMapper mapper = new ObjectMapper();
         ResponseBody responseBody = mapper.readValue(response.getBody(), ResponseBody.class);
 
-        if (responseBody.getReussite() != null && !responseBody.getReussite().isEmpty()) {
-            return true;
-        } else {
-           return false;
-        }
+        return responseBody.getReussite() != null && !responseBody.getReussite().isEmpty();
     }
-
     public List<Monstre> getMonstresFromMetamob() {
         if(!isMetamobActive) {
             return List.of();

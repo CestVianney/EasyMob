@@ -2,6 +2,10 @@ package com.archis.ocr;
 
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.net.URISyntaxException;
@@ -49,13 +53,27 @@ public class TesseractScan {
     }
 
     private File setupAndGetImageFile(File imageFile) {
+        File preprocessedImage = null;
         try {
-            setupTesseract();
+            setupTesseractAndOpenCV();
             imageFile = getImageFile(imageFile);
+            Mat image = Imgcodecs.imread(imageFile.getAbsolutePath());
+            Mat grayImage = new Mat();
+            Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
+
+            Mat thresholdImage = new Mat();
+            Imgproc.threshold(grayImage, thresholdImage, 0, 255, Imgproc.THRESH_BINARY + Imgproc.THRESH_OTSU);
+
+            URL url = getClass().getResource("/img/");
+            Path imagePath = Paths.get(url.toURI());
+            Path newFilePath = imagePath.resolve("processedcapture.png");
+            preprocessedImage = newFilePath.toFile();
+            Imgcodecs.imwrite(preprocessedImage.getAbsolutePath(), thresholdImage);
+
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-        return imageFile;
+        return preprocessedImage;
     }
 
     private File getImageFile(File imageFile) {
@@ -67,14 +85,16 @@ public class TesseractScan {
         }
     }
 
-    private void setupTesseract() throws URISyntaxException {
+    private void setupTesseractAndOpenCV() throws URISyntaxException {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         URL url = getClass().getResource("/tessdata");
         Path path = Paths.get(url.toURI());
         tesseract.setDatapath(path.toString());
+        tesseract.setLanguage("fra");
     }
 
 
     public static void main(String[] args) {
-        extractMonstres().forEach(System.out::println);
+
     }
 }

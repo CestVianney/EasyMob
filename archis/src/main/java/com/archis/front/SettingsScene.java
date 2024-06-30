@@ -153,9 +153,6 @@ public class SettingsScene {
         setSettingValues();
     }
 
-    private void createUIComponents() {
-    }
-
     void setSettingsUpdateListener(SettingsUpdateListener settingsUpdateListener) {
         this.settingsUpdateListener = settingsUpdateListener;
     }

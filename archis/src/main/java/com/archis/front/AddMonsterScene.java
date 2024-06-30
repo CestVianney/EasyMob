@@ -212,7 +212,7 @@ public class AddMonsterScene implements ScreenCaptureListener {
         column2.setPreferredWidth(40);
 
         table1.getColumnModel().getColumn(2).setCellRenderer(new ButtonRenderer());
-        table1.getColumnModel().getColumn(2).setCellEditor(new ButtonEditor(new JCheckBox(), this, monstresUpdateListener, table1));
+        table1.getColumnModel().getColumn(2).setCellEditor(new ButtonEditorAddMonster(new JCheckBox(), this, monstresUpdateListener, table1));
 
         StripedRowRenderer stripedRowRenderer = new StripedRowRenderer();
         for (int i = 0; i < table1.getColumnCount(); i++) {
@@ -263,7 +263,7 @@ class ButtonRenderer extends JButton implements TableCellRenderer {
     }
 }
 
-class ButtonEditor extends DefaultCellEditor {
+class ButtonEditorAddMonster extends DefaultCellEditor {
     protected JButton button;
     private String label;
     private boolean isPushed;
@@ -272,7 +272,7 @@ class ButtonEditor extends DefaultCellEditor {
     private MonstresUpdateListener monstresUpdateListener;
     private JTable table;
 
-    public ButtonEditor(JCheckBox checkBox, AddMonsterScene addMonsterScene, MonstresUpdateListener monstresUpdateListener, JTable table) {
+    public ButtonEditorAddMonster(JCheckBox checkBox, AddMonsterScene addMonsterScene, MonstresUpdateListener monstresUpdateListener, JTable table) {
         super(checkBox);
         this.addMonsterScene = addMonsterScene;
         this.monstresUpdateListener = monstresUpdateListener;

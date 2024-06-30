@@ -21,6 +21,8 @@ public class ScreenCapture {
     private Rectangle captureRect;
     private Point point1;
     private ScreenCaptureListener listener;
+    private Rectangle lastSelectedRect= null;
+
 
     public ScreenCapture() throws AWTException {
     }
@@ -46,14 +48,20 @@ public class ScreenCapture {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                point1 = e.getPoint();
-                selectionPanel.setBounds(point1.x, point1.y, 1, 1);
+                if (lastSelectedRect == null) {
+                    point1 = e.getPoint();
+                    selectionPanel.setBounds(point1.x, point1.y, 1, 1);
+                }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                Point point2 = e.getPoint();
-                captureRect = new Rectangle(point1, new Dimension(point2.x-point1.x, point2.y-point1.y));
+                if (lastSelectedRect == null) {
+                    Point point2 = e.getPoint();
+                    captureRect = new Rectangle(point1, new Dimension(point2.x-point1.x, point2.y-point1.y));
+                } else {
+                    captureRect = lastSelectedRect;
+                }
                 if (controlRectangleSize(frame)) return;
                 savePortionOfScreen(screenCapture);
                 listeMonstres.set(extractMonstres());
@@ -61,17 +69,20 @@ public class ScreenCapture {
                 if (listener != null) {
                     listener.onCaptureCompleted(listeMonstres.get());
                 }
+                lastSelectedRect = captureRect;
             }
         });
 
         label.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                Point point2 = e.getPoint();
-                selectionPanel.setBounds(Math.min(point1.x, point2.x), Math.min(point1.y, point2.y),
-                        Math.abs(point1.x - point2.x), Math.abs(point1.y - point2.y));
-                selectionPanel.setBackground(new Color(0, 0, 255, 50));
-                label.repaint();
+                if (lastSelectedRect == null) {
+                    Point point2 = e.getPoint();
+                    selectionPanel.setBounds(Math.min(point1.x, point2.x), Math.min(point1.y, point2.y),
+                            Math.abs(point1.x - point2.x), Math.abs(point1.y - point2.y));
+                    selectionPanel.setBackground(new Color(0, 0, 255, 50));
+                    label.repaint();
+                }
             }
         });
 

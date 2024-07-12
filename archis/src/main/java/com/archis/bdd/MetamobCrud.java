@@ -1,7 +1,6 @@
 package com.archis.bdd;
 
-import com.archis.model.Monstre;
-import com.archis.model.MonstreMetamob;
+import com.archis.model.MonstreMetamobRecense;
 import com.archis.model.ResponseBody;
 import com.archis.utils.TypeAjoutEnum;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,17 +20,12 @@ import java.util.List;
 public class MetamobCrud {
     private  final RestTemplate restTemplate = getRestTemplate();
     private  String nomPersonnage;
-    private  boolean isMetamobActive;
 
     public MetamobCrud() {
         nomPersonnage = BddCrud.getNomPersonnage();
-        isMetamobActive = BddCrud.isMetamobActive();
     }
 
     public boolean addMonstres(List<Integer> ids, TypeAjoutEnum type, String quantite) throws JsonProcessingException {
-        if(!isMetamobActive) {
-            return true;
-        }
         String url = "https://api.metamob.fr/utilisateurs/" + nomPersonnage + "/monstres";
 
         List<String> bodies = new ArrayList<>();
@@ -52,34 +46,25 @@ public class MetamobCrud {
 
         return responseBody.getReussite() != null && !responseBody.getReussite().isEmpty();
     }
-    public List<Monstre> getMonstresFromMetamob() {
-        if(!isMetamobActive) {
-            return List.of();
-        }
-        String url = "https://api.metamob.fr/utilisateurs/" + nomPersonnage + "/monstres";
-        String result = getValuesFromUrl(url);
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            List<MonstreMetamob> resultBrut = mapper.readValue(result, new TypeReference<List<MonstreMetamob>>(){});
-            return resultBrut.stream().map(MonstreMetamob::mapToMonstre).toList();
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        return List.of();
-    }
 
-    public String getValuesFromUrl(String url) {
-        if(!isMetamobActive) {
-            return "";
+    public boolean getAllMonstres() {
+        try {
+            BddCrud.deleteAllMonstres();
+            String url = "https://api.metamob.fr/monstres";
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, getHeaders(), String.class);
+
+            ObjectMapper mapper = new ObjectMapper();
+            List<MonstreMetamobRecense> monstres = mapper.readValue(response.getBody(), new TypeReference<List<MonstreMetamobRecense>>() {
+            });
+            monstres.forEach(BddCrud::addMonstre);
+        } catch (Exception e){
+            return false;
         }
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, getHeaders(), String.class);
-        return response.getBody();
+        return true;
     }
 
     private RestTemplate getRestTemplate() {
         RestTemplate restTemplate = new RestTemplateBuilder().build();
-
-        // Set custom error handler to handle invalid MIME type
         restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
             public void handleError(ClientHttpResponse response) throws IOException {
@@ -89,13 +74,10 @@ public class MetamobCrud {
             }
         });
 
-        // Add interceptor to correct MIME type
         restTemplate.getInterceptors().add((request, body, execution) -> {
             ClientHttpResponse response = execution.execute(request, body);
             HttpHeaders headers = response.getHeaders();
-            // Ensure Content-Type is set to application/json
             headers.setContentType(MediaType.APPLICATION_JSON);
-            // Fix any incorrectly formatted Content-Type headers
             String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
             if (contentType != null && contentType.contains(",")) {
                 headers.set(HttpHeaders.CONTENT_TYPE, contentType.replace(",", ";"));

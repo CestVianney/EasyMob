@@ -20,46 +20,26 @@ public class SettingsScene {
     private JPanel pnlInnerNorth;
     private JPanel pnlInnerCenter;
     private JSlider sliderOpacite;
-    private JSlider sliderNbPersonnages;
-    private JButton colorButton;
     private JPanel pnlInnerBottom;
     private JTextField apiKeyTextField;
     private JTextField userKeyTextField;
     private JButton validerButton;
     private JTextField nomMetamob;
     private JCheckBox activerMetamobCheckBox;
-    private Color chosenColor;
+    private JTextField raccourciCaptureTextField;
     private SettingsUpdateListener settingsUpdateListener;
 
     private List<Settings> settingsList;
 
     public JPanel SettingsScene() {
         getSettingValues();
-        setColorChooserButtonProperties();
         setCloseButtonPanel(pnlMain, xButton);
         setPanelMouseMovable(pnlMain);
         setSliderOpaciteProperties();
-        setSliderNbPersonnagesProperties();
         setTextAreasValues();
         setValiderButton();
-        setActiverMetamobCheckBox();
+        setRaccourciCaptureProperties();
         return pnlMain;
-    }
-
-    private void setActiverMetamobCheckBox() {
-        for (Settings setting : settingsList) {
-            switch (setting.getNom()) {
-                case "activerMetamob":
-                    activerMetamobCheckBox.setSelected(setting.getValeur().equals("true"));
-                    break;
-            }
-        }
-        activerMetamobCheckBox.addActionListener(e -> {
-            updateSettings("activerMetamob", String.valueOf(activerMetamobCheckBox.isSelected()));
-            if (settingsUpdateListener != null) {
-                settingsUpdateListener.onSettingsUpdated();
-            }
-        });
     }
 
     private void setTextAreasValues() {
@@ -74,6 +54,9 @@ public class SettingsScene {
                 case "nomPersonnage":
                     nomMetamob.setText(setting.getValeur());
                     break;
+                case "toucheCapture":
+                    raccourciCaptureTextField.setText(setting.getValeur());
+                    break;
             }
         }
     }
@@ -83,6 +66,7 @@ public class SettingsScene {
             updateSettings("apiKey", apiKeyTextField.getText());
             updateSettings("userKey", userKeyTextField.getText());
             updateSettings("nomPersonnage", nomMetamob.getText());
+            updateSettings("toucheCapture", raccourciCaptureTextField.getText());
             if (settingsUpdateListener != null) {
                 settingsUpdateListener.onSettingsUpdated();
             }
@@ -95,13 +79,11 @@ public class SettingsScene {
 
 
 
-    private void setColorChooserButtonProperties() {
-        colorButton.addActionListener(e -> {
-            chosenColor = JColorChooser.showDialog(null, "Choisissez une couleur", Color.RED);
-            if (chosenColor != null) {
-                BddCrud.updateSettings("maincouleur", chosenColor.toString());
-                colorButton.setBackground(chosenColor);
-                //TODO changer couleur principale
+    private void setRaccourciCaptureProperties() {
+        raccourciCaptureTextField.addActionListener(e -> {
+            updateSettings("toucheCapture", raccourciCaptureTextField.getText().toUpperCase());
+            if (settingsUpdateListener != null) {
+                settingsUpdateListener.onSettingsUpdated();
             }
         });
     }
@@ -117,30 +99,6 @@ public class SettingsScene {
         sliderOpacite.addMouseListener(new MouseAdapter() {
             public void mouseReleased(MouseEvent evt) {
                 updateSettings("opacite", String.valueOf(sliderOpacite.getValue()));
-                if (settingsUpdateListener != null) {
-                    settingsUpdateListener.onSettingsUpdated();
-                }
-            }
-        });
-    }
-
-    private void setSliderNbPersonnagesProperties() {
-        sliderNbPersonnages.setPaintTrack(true);
-        sliderNbPersonnages.setPaintTicks(true);
-        sliderNbPersonnages.setMajorTickSpacing(1);
-        sliderNbPersonnages.setSnapToTicks(true);
-        sliderNbPersonnages.setPaintLabels(true);
-
-        for (Settings setting : settingsList) {
-            switch (setting.getNom()) {
-                case "nombrepersonnages":
-                    sliderNbPersonnages.setValue(Integer.parseInt(setting.getValeur()));
-                    break;
-            }
-        }
-        sliderNbPersonnages.addMouseListener(new MouseAdapter() {
-            public void mouseReleased(MouseEvent evt) {
-                updateSettings("nombrepersonnages", String.valueOf(sliderNbPersonnages.getValue()));
                 if (settingsUpdateListener != null) {
                     settingsUpdateListener.onSettingsUpdated();
                 }

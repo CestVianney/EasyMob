@@ -22,10 +22,23 @@ public class TesseractScan {
     public static List<String> extractMonstres() {
         TesseractScan tesseractScan = new TesseractScan();
         String result = tesseractScan.scanImage();
+
         List<String> resultLines = List.of(result.split("\n"));
-        resultLines = retirerNiveaux(resultLines);
         resultLines.forEach(System.out::println);
+        resultLines = applicationRegex(resultLines);
+        resultLines = retirerNiveaux(resultLines);
+        resultLines.removeIf(String::isEmpty);
+        resultLines.forEach(System.out::println);
+
         return resultLines;
+    }
+
+    private static List<String> applicationRegex(List<String> resultLines) {
+        String regex = ".*\\b[\\p{L}\\d\\s!]+\\b\\s\\(\\d+\\)$";
+        return resultLines.stream()
+                .map(line -> line.replace("!", "l"))
+                .filter(line -> line.matches(regex))
+                .collect(Collectors.toList());
     }
 
     private static List<String> retirerNiveaux(List<String> lines) {

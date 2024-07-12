@@ -1,5 +1,6 @@
 package com.archis.ocr;
 
+import com.archis.bdd.BddCrud;
 import com.archis.front.itfc.ScreenCaptureListener;
 
 import javax.swing.*;
@@ -15,21 +16,25 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 
+import static com.archis.bdd.BddCrud.getDimensionRectangle;
 import static com.archis.ocr.TesseractScan.extractMonstres;
 
 public class ScreenCapture {
     private Rectangle captureRect;
     private Point point1;
     private ScreenCaptureListener listener;
-    private Rectangle lastSelectedRect= null;
+    private Rectangle lastSelectedRect = null;
+    boolean isLastRectangleCoche = false;
 
 
-    public ScreenCapture() throws AWTException {
+    public ScreenCapture(boolean isLastRectangleCoche) throws AWTException {
+        this.isLastRectangleCoche = isLastRectangleCoche;
     }
 
     public void setScreenCaptureListener(ScreenCaptureListener listener) {
         this.listener = listener;
     }
+
     public List<String> captureAndExtractMonstres() throws AWTException {
         final Robot robot = new Robot();
         final JFrame frame = new JFrame();
@@ -43,7 +48,16 @@ public class ScreenCapture {
         JPanel selectionPanel = new JPanel();
         selectionPanel.setBackground(new Color(0, 0, 0, 0));
         label.add(selectionPanel);
-
+        String rectString = getDimensionRectangle();
+        boolean isRectangleSetInBdd = rectString != null && !rectString.isEmpty();
+        if(isLastRectangleCoche && isRectangleSetInBdd) {
+            frame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowOpened(WindowEvent e) {
+                    autoCaptureAndClose(frame, screenCapture, rectString);
+                }
+            });
+        }
         label.addMouseListener(new MouseAdapter() {
 
             @Override
@@ -56,20 +70,17 @@ public class ScreenCapture {
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (lastSelectedRect == null) {
-                    Point point2 = e.getPoint();
-                    captureRect = new Rectangle(point1, new Dimension(point2.x-point1.x, point2.y-point1.y));
-                } else {
-                    captureRect = lastSelectedRect;
-                }
+                Point point2 = e.getPoint();
+                captureRect = new Rectangle(point1, new Dimension(point2.x - point1.x, point2.y - point1.y));
                 if (controlRectangleSize(frame)) return;
+                String rectString = captureRect.x + "," + captureRect.y + "," + captureRect.width + "," + captureRect.height;
+                BddCrud.updateSettings("rectangle", rectString);
                 savePortionOfScreen(screenCapture);
                 listeMonstres.set(extractMonstres());
                 frame.dispose();
                 if (listener != null) {
                     listener.onCaptureCompleted(listeMonstres.get());
                 }
-                lastSelectedRect = captureRect;
             }
         });
 
@@ -90,6 +101,26 @@ public class ScreenCapture {
         frame.setVisible(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         return listeMonstres.get();
+    }
+
+    private void autoCaptureAndClose(JFrame frame, BufferedImage screenCapture, String rectString) {
+        String[] rectValues = rectString.split(",");
+        if (rectValues.length != 4) {
+            return;
+        }
+        try {
+            captureRect = new Rectangle(Integer.parseInt(rectValues[0]), Integer.parseInt(rectValues[1]), Integer.parseInt(rectValues[2]), Integer.parseInt(rectValues[3]));
+        } catch (NumberFormatException e) {
+            return;
+        }
+        if (captureRect.width <= 0 || captureRect.height <= 0) {
+            return;
+        }
+        savePortionOfScreen(screenCapture);
+        frame.dispose();
+        if (listener != null) {
+            listener.onCaptureCompleted(extractMonstres());
+        }
     }
 
     private void savePortionOfScreen(BufferedImage screenCapture) {

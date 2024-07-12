@@ -1,8 +1,5 @@
 package com.archis.bdd;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.sql.*;
 import java.util.List;
 
@@ -15,28 +12,13 @@ public class BddFirstInit {
                 + " id INTEGER NOT NULL,\n"
                 + " nom TEXT NOT NULL,\n"
                 + " slug TEXT NOT NULL, \n"
-                + " type TEXT NOT NULL, \n"
-                + " image_url TEXT NOT NULL,\n"
-                + " etape INTEGER NOT NULL,\n"
-                + " quantite INTEGER DEFAULT 0,\n"
-                + " recherche INTEGER DEFAULT 0,\n"
-                + " propose INTEGER DEFAULT 0,\n"
-                + " souszone TEXT\n"
+                + " type TEXT NOT NULL \n"
                 + ");";
-
         try {
             Connection conn = connect();
             if(!isTableExists(conn, "archimonstres")) {
                 Statement stmt = conn.createStatement();
                 stmt.execute(sql);
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(BddFirstInit.class.getClassLoader().getResourceAsStream("scripts/insertArchimonstres.txt")))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        stmt.execute(line);
-                    }
-                } catch (IOException e) {
-                    System.out.println("Erreur lors de la lecture du fichier : " + e.getMessage());
-                }
             }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -55,7 +37,9 @@ public class BddFirstInit {
                 "INSERT INTO settings(nom, valeur) VALUES ('apiKey', '')",
                 "INSERT INTO settings(nom, valeur) VALUES ('userKey', '')",
                 "INSERT INTO settings(nom, valeur) VALUES ('nomPersonnage', '')",
-                "INSERT INTO settings(nom, valeur) VALUES ('activerMetamob', 'false')");
+                "INSERT INTO settings(nom, valeur) VALUES ('toucheCapture', 'F1')",
+                "INSERT INTO settings(nom, valeur) VALUES ('rectangle', '')",
+                "INSERT INTO settings(nom, valeur) VALUES ('useLastRectangle', 'false')");
 
         try {
             Connection conn = connect();
@@ -76,35 +60,14 @@ public class BddFirstInit {
         }
     }
 
-    static void firstInitHistorique() {
-        String sql = "CREATE TABLE IF NOT EXISTS historique (\n"
-                + " id INTEGER NOT NULL,\n"
-                + " nom TEXT NOT NULL,\n"
-                + " slug TEXT NOT NULL, \n"
-                + " type TEXT NOT NULL, \n"
-                + " image_url TEXT NOT NULL,\n"
-                + " etape INTEGER NOT NULL,\n"
-                + " date DATE NOT NULL\n"
-                + ");";
-
-
-        try {
-            Connection conn = connect();
-            if(!isTableExists(conn, "historique")) {
-                Statement stmt = conn.createStatement();
-                stmt.execute(sql);
-            }
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
+    public static void main(String[] args) {
+        firstInit();
+//        eraseTable();
     }
 
-    public static void main(String[] args) {
+    public static void firstInit() {
         firstInitSettings();
-//        firstInitMonstreParameter();
-//    firstInitHistorique();
-//        firstInitArchimonstres();
-//    eraseTable();
+        firstInitArchimonstres();
     }
 
     private static boolean isTableExists(Connection conn, String nomTable) {
@@ -122,41 +85,11 @@ public class BddFirstInit {
     }
 
     static void eraseTable() {
-        String sql = "DROP TABLE IF EXISTS settings";
+        String sql = "DROP TABLE IF EXISTS archimonstres";
 
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    //TODO: a kick quand on sera sûrs
-    static void firstInitMonstreParameter() {
-        String sql = "CREATE TABLE IF NOT EXISTS parammonstres (\n"
-                + " id INTEGER NOT NULL,\n"
-                + " nom TEXT NOT NULL,\n"
-                + " slug TEXT NOT NULL, \n"
-                + " type TEXT NOT NULL, \n"
-                + " image_url TEXT NOT NULL,\n"
-                + " etape TEXT NOT NULL\n"
-                + ");";
-
-        try {
-            Connection conn = connect();
-            if(!isTableExists(conn, "parammonstres")) {
-                Statement stmt = conn.createStatement();
-                stmt.execute(sql);
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(BddFirstInit.class.getClassLoader().getResourceAsStream("scripts/insertParamMonstres.txt")))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        stmt.execute(line);
-                    }
-                } catch (IOException e) {
-                    System.out.println("Erreur lors de la lecture du fichier : " + e.getMessage());
-                }
-            }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }

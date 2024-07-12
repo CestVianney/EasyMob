@@ -47,17 +47,17 @@ public class PopupCapture {
         table1.setRowHeight(40);
         table1.setPreferredScrollableViewportSize(new Dimension(table1.getPreferredSize().width, 320));
         TableColumn column = table1.getColumnModel().getColumn(1);
-        column.setMinWidth(0);
-        column.setMaxWidth(0);
-        column.setPreferredWidth(0);
-        // Créez un JScrollPane contenant votre JTable
-        JScrollPane scrollPane = new JScrollPane(table1);
+        column.setMinWidth(100);
+        column.setMaxWidth(100);
+        column.setPreferredWidth(100);
 
-        // Ajoutez le JScrollPane à votre JPanel
+        JScrollPane scrollPane = new JScrollPane(table1);
         pnlInnerCenter.add(scrollPane);
 
         frame.pack();
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+        frame.toFront();
     }
 
     private void setTableValues(JTable table1, List<String> monstres) {
@@ -95,8 +95,9 @@ public class PopupCapture {
         List<Monstre> monstres = new ArrayList<>();
         for (int i = 0; i < model.getRowCount(); i++) {
             String nomMonstre = (String) model.getValueAt(i, 0);
-            Monstre monstre = BddCrud.getMonstreByName(nomMonstre);
-            if (monstre != null) {
+            boolean existsInBdd = (boolean) model.getValueAt(i, 1);
+            if(existsInBdd) {
+                Monstre monstre = BddCrud.getMonstreByName(nomMonstre);
                 ids.add(monstre.getId());
                 monstres.add(monstre);
             }
@@ -106,7 +107,6 @@ public class PopupCapture {
                 MetamobCrud metamobCrud = new MetamobCrud();
                 boolean hasBeenAdded = metamobCrud.addMonstres(ids, TypeAjoutEnum.QUANTITE, "+1");
                 if (hasBeenAdded) {
-                    monstres.forEach(BddCrud::addMonster);
                     Window window = SwingUtilities.getWindowAncestor(pnlMain);
                     if (window != null) {
                         window.dispose();
